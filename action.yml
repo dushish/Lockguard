@@ -1,0 +1,110 @@
+name: "lockguard"
+description: "Flag malicious-looking code in npm dependency updates before you merge them"
+author: "lockguard contributors"
+branding:
+  icon: "shield"
+  color: "red"
+
+inputs:
+  fail-on:
+    description: "Fail the job when a finding is at least this severe: low, medium, high or critical"
+    required: false
+    default: "high"
+  base:
+    description: "Git ref or SHA of the base lockfile (defaults to the pull request's base commit)"
+    required: false
+    default: ""
+  lockfile:
+    description: "Path to package-lock.json, relative to working-directory"
+    required: false
+    default: "package-lock.json"
+  working-directory:
+    description: "Directory containing the lockfile"
+    required: false
+    default: "."
+  comment:
+    description: "Post (or update) a single report comment on the pull request"
+    required: false
+    default: "true"
+  github-token:
+    description: "Token used to post the PR comment (needs pull-requests: write)"
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  exit-code:
+    description: "0 = pass, 1 = findings at or above fail-on, 2 = lockguard error"
+    value: ${{ steps.run.outputs.exit-code }}
+  report:
+    description: "Path to the Markdown report"
+    value: ${{ steps.run.outputs.report }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install lockguard
+      shell: bash
+      env:
+        LG_ACTION_PATH: ${{ github.action_path }}
+      run: python -m pip install --disable-pip-version-check --quiet "$LG_ACTION_PATH"
+
+    - name: Run lockguard
+      id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      # Inputs are passed through the environment, never interpolated into the script,
+      # so a crafted branch or ref name cannot inject shell commands.
+      env:
+        LG_BASE: ${{ inputs.base || github.event.pull_request.base.sha }}
+        LG_FAIL_ON: ${{ inputs.fail-on }}
+        LG_LOCKFILE: ${{ inputs.lockfile }}
+      run: |
+        set +e
+        report="$RUNNER_TEMP/lockguard-report.md"
+        echo "report=$report" >> "$GITHUB_OUTPUT"
+        if [ -z "$LG_BASE" ]; then
+          echo "::error::lockguard: no base ref. Run on pull_request events or set the 'base' input."
+          echo "exit-code=2" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        # actions/checkout fetches a single commit by default; make sure the base exists.
+        if ! git cat-file -e "${LG_BASE}^{commit}" 2>/dev/null; then
+          git fetch --no-tags --depth=1 origin "$LG_BASE" || true
+        fi
+        lockguard git --base "$LG_BASE" --lockfile "$LG_LOCKFILE" \
+          --format markdown --fail-on "$LG_FAIL_ON" > "$report"
+        code=$?
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        if [ -s "$report" ]; then
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+        fi
+        exit 0
+
+    - name: Comment on the pull request
+      if: ${{ inputs.comment == 'true' && github.event.pull_request.number && steps.run.outputs.exit-code != '2' }}
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        LG_PR: ${{ github.event.pull_request.number }}
+        LG_REPORT: ${{ steps.run.outputs.report }}
+      run: |
+        python -m lockguard.github_comment --repo "$GITHUB_REPOSITORY" --pr "$LG_PR" \
+          --body-file "$LG_REPORT" \
+          || echo "::warning::lockguard could not post the PR comment (pull requests from forks get a read-only token). The report is in the job summary."
+
+    - name: Enforce the threshold
+      shell: bash
+      env:
+        LG_CODE: ${{ steps.run.outputs.exit-code }}
+        LG_FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        case "$LG_CODE" in
+          0) echo "lockguard: no findings at or above '$LG_FAIL_ON'." ;;
+          1) echo "::error::lockguard found suspicious dependency changes at or above '$LG_FAIL_ON'. See the job summary."; exit 1 ;;
+          *) echo "::error::lockguard failed to run (exit code ${LG_CODE:-unknown})."; exit 2 ;;
+        esac

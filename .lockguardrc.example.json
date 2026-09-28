@@ -1,0 +1,9 @@
+{
+  "failOn": "high",
+  "ignore": [
+    { "package": "some-pkg", "rule": "network_access" },
+    { "package": "esbuild", "rule": "install_scripts" },
+    { "package": "@types/*" }
+  ],
+  "allowedHosts": ["npm.internal.example.com"]
+}

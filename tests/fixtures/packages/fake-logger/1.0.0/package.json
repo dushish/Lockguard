@@ -1,0 +1,11 @@
+{
+  "_comment": "HARMLESS TEST FIXTURE for lockguard. Not a real package; never installed.",
+  "name": "fake-logger",
+  "version": "1.0.0",
+  "description": "A tiny namespaced logger (lockguard test fixture)",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "MIT"
+}

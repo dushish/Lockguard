@@ -1,0 +1,33 @@
+{
+  "_comment": "HARMLESS TEST FIXTURE for lockguard: a fake registry packument. dist.tarball and dist.integrity are filled in at run time from the fixture sources.",
+  "name": "fake-logger",
+  "dist-tags": { "latest": "1.0.1" },
+  "maintainers": [{ "name": "original-dev", "email": "original-dev@example.invalid" }],
+  "time": {
+    "created": "2024-03-02T10:00:00.000Z",
+    "modified": "2025-09-08T13:16:00.000Z",
+    "0.9.0": "2024-03-02T10:00:00.000Z",
+    "1.0.0": "2025-06-01T09:30:00.000Z",
+    "1.0.1": "2025-09-08T13:16:00.000Z"
+  },
+  "versions": {
+    "0.9.0": {
+      "name": "fake-logger",
+      "version": "0.9.0",
+      "_npmUser": { "name": "original-dev", "email": "original-dev@example.invalid" },
+      "dist": { "attestations": { "url": "https://registry.npmjs.org/-/npm/v1/attestations/fake-logger@0.9.0", "provenance": { "predicateType": "https://slsa.dev/provenance/v1" } } }
+    },
+    "1.0.0": {
+      "name": "fake-logger",
+      "version": "1.0.0",
+      "_npmUser": { "name": "original-dev", "email": "original-dev@example.invalid" },
+      "dist": { "attestations": { "url": "https://registry.npmjs.org/-/npm/v1/attestations/fake-logger@1.0.0", "provenance": { "predicateType": "https://slsa.dev/provenance/v1" } } }
+    },
+    "1.0.1": {
+      "name": "fake-logger",
+      "version": "1.0.1",
+      "_npmUser": { "name": "new-user-123", "email": "new-user-123@example.invalid" },
+      "dist": {}
+    }
+  }
+}

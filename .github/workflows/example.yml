@@ -1,0 +1,28 @@
+# Example: review every pull request that changes package-lock.json.
+#
+# In your own repository, replace `uses: ./` with `uses: dushish/lockguard@v0.1.0`.
+# `uses: ./` runs the action from this checkout, which is how lockguard tests itself.
+name: lockguard (example)
+
+on:
+  pull_request:
+    paths:
+      - "package-lock.json"
+      - "**/package-lock.json"
+
+permissions:
+  contents: read
+  pull-requests: write # to post the report comment
+
+jobs:
+  lockguard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Review dependency updates
+        uses: ./
+        with:
+          fail-on: high
+          # lockfile: frontend/package-lock.json
